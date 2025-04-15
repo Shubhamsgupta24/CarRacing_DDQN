@@ -43,8 +43,8 @@ class ReplayBuffer:
 
 class DDQNAgent:
     def __init__(self, alpha, gamma, n_actions, epsilon, batch_size, input_dims,
-                 epsilon_dec=0.999995, epsilon_end=0.10, mem_size=25000,
-                 fname='ddqn_model.keras', replace_target=25):
+                 epsilon_dec,replace_target, epsilon_end, mem_size=25000,
+                 fname='ddqn_model.keras'):
         self.action_space = [i for i in range(n_actions)]
         self.n_actions = n_actions
         self.gamma = gamma
@@ -54,6 +54,7 @@ class DDQNAgent:
         self.batch_size = batch_size
         self.model_file = fname
         self.replace_target = replace_target
+        self.alpha = alpha
         self.memory = ReplayBuffer(mem_size, input_dims, n_actions, discrete=True)
 
         self.brain_eval = Brain(input_dims, n_actions, batch_size)
@@ -102,8 +103,9 @@ class DDQNAgent:
         self.brain_eval.model.save(self.model_file)
 
     def load_model(self):
-        self.brain_eval.model = load_model(self.model_file, compile=False)
-        self.brain_target.model = load_model(self.model_file, compile=False)
+        self.brain_eval.model = load_model(self.model_file) 
+        self.brain_target.model = load_model(self.model_file)
+
         if self.epsilon == 0.0:
             self.update_network_parameters()
 
@@ -119,10 +121,11 @@ class Brain:
         model = models.Sequential([
             layers.Input(shape=(self.NbrStates,)),
             layers.Dense(256, activation='relu'),
-            layers.Dense(self.NbrActions, activation='softmax')
+            layers.Dense(256, activation='relu'),
+            layers.Dense(self.NbrActions, activation='linear')
         ])
         model.compile(optimizer=optimizers.Adam(learning_rate=0.001),
-                      loss=losses.MeanSquaredError())
+                      loss=losses.Huber())
         return model
 
     def train(self, x, y, epoch=1, verbose=0):

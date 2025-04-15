@@ -3,7 +3,7 @@ import math
 from Walls import getWalls
 from Goals import getGoals
 
-GOALREWARD = 1
+GOALREWARD = 2
 LIFE_REWARD = 0
 PENALTY = -1
 
@@ -425,6 +425,32 @@ class RacingEnv:
                 reward += PENALTY
                 done = True
 
+        # --- Reward shaping: negative distance to next goal ---
+        # Find the next active goal
+        active_goal = None
+        for goal in self.goals:
+            if goal.isactiv:
+                active_goal = goal
+                break
+        
+        if active_goal is not None:
+            # Use the center of the goal line as the target
+            goal_center_x = (active_goal.x1 + active_goal.x2) / 2
+            goal_center_y = (active_goal.y1 + active_goal.y2) / 2
+            car_pos = myPoint(self.car.x, self.car.y)
+            goal_pos = myPoint(goal_center_x, goal_center_y)
+            dist = distance(car_pos, goal_pos)
+            # Normalize distance (optional, depending on your track size)
+            norm_dist = dist / 1000.0  # adjust denominator as needed
+            reward -= 0.2 * norm_dist  # small penalty for being far from goal
+
+        # --- Penalize negative velocity ---
+        if self.car.vel < 0:
+            reward -= 0.2 * abs(self.car.vel / self.car.maxvel)  # Tune 0.2 as needed
+        # --- Reward for positive velocity ---
+        if self.car.vel > 0:
+            reward += 0.2 * abs(self.car.vel / self.car.maxvel)
+
         new_state = self.car.cast(self.walls)
         #normalize states
         if done:
@@ -436,7 +462,7 @@ class RacingEnv:
 
         DRAW_WALLS = False
         DRAW_GOALS = True
-        DRAW_RAYS = True
+        DRAW_RAYS = False
 
         pygame.time.delay(10)
 
@@ -499,10 +525,10 @@ class RacingEnv:
             pygame.draw.rect(self.screen,(0,255,0),(900, 100, 40, 40))
 
         # score
-        text_surface = self.font.render(f'Points {self.car.points}', True, pygame.Color('green'))
+        text_surface = self.font.render(f'Points {self.car.points/2}', True, pygame.Color('green'))
         self.screen.blit(text_surface, dest=(0, 0))
         # speed
-        text_surface = self.font.render(f'Velocity {-self.car.vel}', True, pygame.Color('green'))
+        text_surface = self.font.render(f'Velocity {self.car.vel}', True, pygame.Color('green'))
         self.screen.blit(text_surface, dest=(800, 0))
 
         self.clock.tick(self.fps)

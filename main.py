@@ -2,13 +2,9 @@ import GameEnv
 import pygame
 import numpy as np
 from ddqn_keras import DDQNAgent
-import warnings
 
-# Disable warnings
-warnings.filterwarnings("ignore")
-
-TOTAL_GAMETIME = 2000
-N_EPISODES = 1000
+TOTAL_GAMETIME = 3000
+N_EPISODES = 10000
 REPLACE_TARGET = 50
 
 game = GameEnv.RacingEnv()
@@ -20,7 +16,7 @@ ddqn_agent = DDQNAgent(
     n_actions=5,              # Number of possible actions the agent can take (like [left, right, accelerate, brake, do nothing])
     epsilon=1.00,             # Initial value for epsilon in epsilon-greedy policy (chance to explore random actions)
     epsilon_end=0.10,         # Minimum value for epsilon after decay (so agent keeps some randomness)
-    epsilon_dec=0.9995,       # Epsilon decay factor after each step or episode (controls how quickly it shifts from explore to exploit)
+    epsilon_dec=0.9999,       # Epsilon decay factor after each step or episode (controls how quickly it shifts from explore to exploit)
     replace_target=REPLACE_TARGET,  # Number of episodes or steps after which to update the target network
     batch_size=512,           # Number of experiences sampled from memory during each learning step
     input_dims=19             # Size of the input state vector (number of features per observation from the environment)
