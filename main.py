@@ -2,6 +2,10 @@ import GameEnv
 import pygame
 import numpy as np
 from ddqn_keras import DDQNAgent
+import warnings
+
+# Disable warnings
+warnings.filterwarnings("ignore")
 
 TOTAL_GAMETIME = 2000
 N_EPISODES = 1000
@@ -80,9 +84,9 @@ def run():
 
         if e % 10 == 0 and e > 10:
             ddqn_agent.save_model()
-            print("save model")
+            print("Model is being saved...")
 
         print(f'Episode: {e}, Score: {score:.2f}, Average Score: {avg_score:.2f}, '
-              f'Epsilon: {ddqn_agent.epsilon:.3f}, Memory Size: {ddqn_agent.memory.mem_cntr % ddqn_agent.memory.mem_size}')
+              f'Epsilon: {ddqn_agent.epsilon:.3f}, Memory Size: {ddqn_agent.memory.mem_cntr % ddqn_agent.memory.mem_size}',flush=True)
 
 run()

@@ -17,3 +17,4 @@ env/
 
 # DDQN model files
 *.h5
+*.keras
