@@ -1,0 +1,100 @@
+import pygame
+
+class Goal:
+    def __init__(self, x1, y1, x2, y2):
+        self.x1 = x1
+        self.y1 = y1
+        self.x2 = x2
+        self.y2 = y2
+
+        self.isactiv = False
+    
+    def draw(self, win):
+        pygame.draw.line(win, (0,255,0), (self.x1, self.y1), (self.x2, self.y2), 2)
+        if self.isactiv:
+            pygame.draw.line(win, (255,0,0), (self.x1, self.y1), (self.x2, self.y2), 2)
+
+def getGoals():
+    goals = []
+
+    goal38 = Goal(13,380,102,380)
+    goal37 = Goal(12,445,103,410)
+    goal36 = Goal(44,526,122,447)
+    goal35 = Goal(108,553,152,469)
+    goal34 = Goal(194,570,206,489)
+    goal33 = Goal(278,569,280,488)
+    goal32 = Goal(350,569,350,487)
+    goal31= Goal(430,568,430,486)
+    goal30= Goal(510,568,510,486)
+    goal29 = Goal(590,568,590,486)
+    goal28 = Goal(670,568,670,484)
+    goal27 = Goal(750,566,750,483)
+    goal26 = Goal(855,540,795,461)
+    goal25 = Goal(946,434,854,418)
+    goal24 = Goal(932,254,830,336)
+    goal23 = Goal(795,182,770,303)
+    goal22 = Goal(673,246,714,328)
+    goal21 = Goal(554,291,565,367)
+    goal20 = Goal(423,292,408,363)
+    goal19 = Goal(393,286,322,335)
+    goal18 = Goal(380,260,293,260)
+    goal17 = Goal(402,245,328,206)
+    goal16 = Goal(426,231,416,167)
+    goal15 = Goal(564,209,552,144)
+    goal14 = Goal(632,188,567,141)
+    goal13 = Goal(674,130,585,130)
+    goal12 = Goal(657,90,577,118)
+    goal11 = Goal(584,42,558,110)
+    goal10 = Goal(525,29,525,102)
+    goal9 = Goal(450,24,450,99)
+    goal8 = Goal(350,19,350,94)
+    goal7 = Goal(270,17,270,92)
+    goal6 = Goal(200,15,200,91)
+    goal5 = Goal(130,24,164,105)
+    goal4 = Goal(65,58,135,117)
+    goal3 = Goal(27,111,107,145)
+    goal2 = Goal(14,200,97,200)
+    goal1 = Goal(14,250,99,250)
+
+    goals.append(goal1)
+    goals.append(goal2)
+    goals.append(goal3)
+    goals.append(goal4)
+    goals.append(goal5)
+    goals.append(goal6)
+    goals.append(goal7)
+    goals.append(goal8)
+    goals.append(goal9)
+    goals.append(goal10)
+    goals.append(goal11)
+    goals.append(goal12)
+    goals.append(goal13)
+    goals.append(goal14)
+    goals.append(goal15)
+    goals.append(goal16)
+    goals.append(goal17)
+    goals.append(goal18)
+    goals.append(goal19)
+    goals.append(goal20)
+    goals.append(goal21)
+    goals.append(goal22)
+    goals.append(goal23)
+    goals.append(goal24)
+    goals.append(goal25)
+    goals.append(goal26)
+    goals.append(goal27)
+    goals.append(goal28)
+    goals.append(goal29)
+    goals.append(goal30)
+    goals.append(goal31)
+    goals.append(goal32)
+    goals.append(goal33)
+    goals.append(goal34)
+    goals.append(goal35)
+    goals.append(goal36)
+    goals.append(goal37)
+    goals.append(goal38)
+
+    goals[len(goals)-1].isactiv = True
+
+    return(goals)
