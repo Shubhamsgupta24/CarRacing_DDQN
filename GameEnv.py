@@ -2,10 +2,11 @@ import pygame
 import math
 from Walls import getWalls
 from Goals import getGoals
+import numpy as np
 
-GOALREWARD = 2
+GOALREWARD = 1
 LIFE_REWARD = 0
-PENALTY = -1
+PENALTY = -0.5
 
 def distance(pt1, pt2):
     return(((pt1.x - pt2.x)**2 + (pt1.y - pt2.y)**2)**0.5)
@@ -60,8 +61,8 @@ class Ray:
 
         den = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)
             
-        if(den == 0):
-            den = 0
+        if den == 0:
+            return None
         else:
             t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / den
             u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / den
@@ -69,8 +70,6 @@ class Ray:
             if t > 0 and t < 1 and u < 1 and u > 0:
                 pt = myPoint(math.floor(x1 + t * (x2 - x1)), math.floor(y1 + t * (y2 - y1)))
                 return(pt)
-
- 
 
 class Car:
     def __init__(self, x, y):
@@ -135,43 +134,33 @@ class Car:
             self.turn(1)
         elif choice == 2: # turn left
             self.turn(-1)
-        pass
+        else:
+            print(f"Invalid choice: {choice}")
     
     def accelerate(self,dvel):
-        dvel = dvel * 2
-
         self.vel = self.vel + dvel
-
-        if self.vel > self.maxvel:
-            self.vel = self.maxvel
-        
-        if self.vel < -self.maxvel:
-            self.vel = -self.maxvel
-        
+        # Ensure velocity doesn't exceed max or go below 0
+        self.vel = max(0, min(self.vel, self.maxvel))
         
     def turn(self, dir):
-        self.soll_angle = self.soll_angle + dir * math.radians(15)
+        """ Rotate the car by the given direction (1 for right, -1 for left). """
+        self.soll_angle = self.soll_angle + dir * math.radians(5)
+        # Keep the angle within 0 to 2pi
+        if self.soll_angle >= 2 * math.pi:
+            self.soll_angle -= 2 * math.pi
+        elif self.soll_angle < 0:
+            self.soll_angle += 2 * math.pi
     
-    def update(self):
-
-        #drifting code 
-
-        # if(self.soll_angle > self.angle):
-        #     if(self.soll_angle > self.angle + math.radians(10) * self.maxvel / ((self.velX**2 + self.velY**2)**0.5 + 1)):
-        #         self.angle = self.angle + math.radians(10) * self.maxvel / ((self.velX**2 + self.velY**2)**0.5 + 1)
-        #     else:
-        #         self.angle = self.soll_angle
-        
-        # if(self.soll_angle < self.angle):
-        #     if(self.soll_angle < self.angle - math.radians(10) * self.maxvel / ((self.velX**2 + self.velY**2)**0.5 + 1)):
-        #         self.angle = self.angle - math.radians(10) * self.maxvel / ((self.velX**2 + self.velY**2)**0.5 + 1)
-        #     else:
-        #         self.angle = self.soll_angle
-        
+    def update(self):        
         self.angle = self.soll_angle
 
-        vec_temp = rotate(myPoint(0,0), myPoint(0,self.vel), self.angle)
-        self.velX, self.velY = vec_temp.x, vec_temp.y
+        # Handle zero velocity before performing rotation
+        if self.vel != 0:
+            vec_temp = rotate(myPoint(0, 0), myPoint(0, self.vel), self.angle)
+            self.velX, self.velY = vec_temp.x, vec_temp.y
+        else:
+            self.velX = 0
+            self.velY = 0  # No movement if velocity is zero
 
         self.x = self.x + self.velX
         self.y = self.y + self.velY
@@ -183,6 +172,7 @@ class Car:
         self.pt3 = myPoint(self.pt3.x + self.velX, self.pt3.y + self.velY)
         self.pt4 = myPoint(self.pt4.x + self.velX, self.pt4.y + self.velY)
 
+        # rotate the rectangle around its center
         self.p1 ,self.p2 ,self.p3 ,self.p4  = rotateRect(self.pt1, self.pt2, self.pt3, self.pt4, self.soll_angle)
 
         self.image = pygame.transform.rotate(self.original_image, 90 - self.soll_angle * 180 / math.pi)
@@ -200,17 +190,14 @@ class Car:
         ray6 = Ray(self.x, self.y, self.soll_angle + math.radians(90))
         ray7 = Ray(self.x, self.y, self.soll_angle - math.radians(90))
         ray8 = Ray(self.x, self.y, self.soll_angle + math.radians(180))
-
         ray9 = Ray(self.x, self.y, self.soll_angle + math.radians(10))
         ray10 = Ray(self.x, self.y, self.soll_angle - math.radians(10))
         ray11 = Ray(self.x, self.y, self.soll_angle + math.radians(135))
         ray12 = Ray(self.x, self.y, self.soll_angle - math.radians(135))
         ray13 = Ray(self.x, self.y, self.soll_angle + math.radians(20))
         ray14 = Ray(self.x, self.y, self.soll_angle - math.radians(20))
-
         ray15 = Ray(self.p1.x,self.p1.y, self.soll_angle + math.radians(90))
         ray16 = Ray(self.p2.x,self.p2.y, self.soll_angle - math.radians(90))
-
         ray17 = Ray(self.p1.x,self.p1.y, self.soll_angle + math.radians(0))
         ray18 = Ray(self.p2.x,self.p2.y, self.soll_angle - math.radians(0))
 
@@ -223,17 +210,14 @@ class Car:
         self.rays.append(ray6)
         self.rays.append(ray7)
         self.rays.append(ray8)
-
         self.rays.append(ray9)
         self.rays.append(ray10)
         self.rays.append(ray11)
         self.rays.append(ray12)
         self.rays.append(ray13)
         self.rays.append(ray14)
-
         self.rays.append(ray15)
         self.rays.append(ray16)
-
         self.rays.append(ray17)
         self.rays.append(ray18)
 
@@ -262,7 +246,8 @@ class Car:
 
         for i in range(len(observations)):
             #invert observation values 0 is far away 1 is close
-            observations[i] = ((1000 - observations[i]) / 1000)
+            # observations[i] = ((1000 - observations[i]) / 1000)
+            observations[i] = max(0, min(1, (1000 - observations[i]) / 1000))  # Ensure it's in range [0, 1]
 
         observations.append(self.vel / self.maxvel)
         return observations
@@ -295,7 +280,7 @@ class Car:
             den = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)
             
             if(den == 0):
-                den = 0
+                continue
             else:
                 t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / den
                 u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / den
@@ -325,21 +310,20 @@ class Car:
         den = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)
         
         if(den == 0):
-            den = 0
-        else:
-            t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / den
-            u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / den
+            return 0
+        
+        t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / den
+        u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / den
 
-            if t > 0 and t < 1 and u < 1 and u > 0:
-                pt = math.floor(x1 + t * (x2 - x1)), math.floor(y1 + t * (y2 - y1))
+        if t > 0 and t < 1 and u < 1 and u > 0:
+            pt = math.floor(x1 + t * (x2 - x1)), math.floor(y1 + t * (y2 - y1))
 
-                d = distance(myPoint(self.x, self.y), myPoint(pt[0], pt[1]))
-                if d < 20:
-                    #pygame.draw.circle(win, (0,255,0), pt, 5)
-                    self.points += GOALREWARD
-                    return(True)
+            d = distance(myPoint(self.x, self.y), myPoint(pt[0], pt[1]))
+            if d < 20:
+                self.points += GOALREWARD
+                return GOALREWARD
 
-        return(False)
+        return 0
 
     def reset(self):
 
@@ -365,7 +349,6 @@ class Car:
     def draw(self, win):
         win.blit(self.image, self.rect)
   
-
 class RacingEnv:
 
     def __init__(self):
@@ -440,21 +423,35 @@ class RacingEnv:
             car_pos = myPoint(self.car.x, self.car.y)
             goal_pos = myPoint(goal_center_x, goal_center_y)
             dist = distance(car_pos, goal_pos)
+
+            # Check for invalid distance or NaN
+            if np.isnan(dist) or np.isinf(dist):
+                print("❌ Invalid distance value detected!")
+                dist = 0.0  # Reset invalid distance to zero
+
             # Normalize distance (optional, depending on your track size)
             norm_dist = dist / 1000.0  # adjust denominator as needed
-            reward -= 0.2 * norm_dist  # small penalty for being far from goal
+            reward -= 0.1 * norm_dist  # small penalty for being far from goal
 
-        # --- Penalize negative velocity ---
-        if self.car.vel < 0:
-            reward -= 0.2 * abs(self.car.vel / self.car.maxvel)  # Tune 0.2 as needed
-        # --- Reward for positive velocity ---
-        if self.car.vel > 0:
-            reward += 0.2 * abs(self.car.vel / self.car.maxvel)
+        # Reward or penalty for velocity
+        if self.car.maxvel > 0:
+            reward += 0.1 * (self.car.vel / self.car.maxvel)
 
-        new_state = self.car.cast(self.walls)
+        new_state = np.array(self.car.cast(self.walls), dtype=np.float32)
+
+        # Ensure new_state is valid and not NaN
+        if np.isnan(new_state).any() or np.isinf(new_state).any():
+            print("❌ Invalid state detected!")
+            new_state = np.zeros_like(new_state)  # Reset to zero or handle appropriately
+
         #normalize states
         if done:
-            new_state = None
+            new_state = np.zeros_like(new_state)
+
+        # Ensure reward is valid
+        if np.isnan(reward) or np.isinf(reward):
+            print("❌ Invalid reward detected!")
+            reward = 0.0  # Reset reward to zero if invalid
 
         return new_state, reward, done
 
@@ -536,6 +533,4 @@ class RacingEnv:
 
     def close(self):
         pygame.quit()
-
-
 

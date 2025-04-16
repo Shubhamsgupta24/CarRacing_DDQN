@@ -2,9 +2,10 @@ import GameEnv
 import pygame
 import numpy as np
 from ddqn_keras import DDQNAgent
+from tensorflow.keras.models import load_model #type: ignore
 
-TOTAL_GAMETIME = 3000
-N_EPISODES = 10000
+TOTAL_GAMETIME = 5000
+N_EPISODES = 1000
 REPLACE_TARGET = 50
 
 game = GameEnv.RacingEnv()
@@ -30,6 +31,8 @@ eps_history = []
 
 
 def run():
+    best_score = -np.inf  # Initialize best score
+
     for e in range(N_EPISODES):
         game.reset()
         done = False
@@ -38,7 +41,7 @@ def run():
         gtime = 0
 
         observation_, reward, done = game.step(0)
-        observation = np.array(observation_)
+        observation = np.array(observation_, dtype=np.float32)
 
         renderFlag = (e % 10 == 0 and e > 0)
 
@@ -49,7 +52,10 @@ def run():
 
             action = ddqn_agent.choose_action(observation)
             observation_, reward, done = game.step(action)
-            observation_ = np.array(observation_)
+            observation_ = np.array(observation_, dtype=np.float32)
+
+            # print(observation_)
+            # print(type(observation_))
 
             if reward == 0:
                 counter += 1
@@ -82,7 +88,60 @@ def run():
             ddqn_agent.save_model()
             print("Model is being saved...")
 
+        # Saving the best model
+        if score > best_score:
+            best_score = score
+            ddqn_agent.brain_eval.model.save("best_ddqn_model.keras")
+            print(f'🎉 New Best Score: {best_score:.2f}. Best model saved as best_model.keras!', flush=True)
+
+
         print(f'Episode: {e}, Score: {score:.2f}, Average Score: {avg_score:.2f}, '
               f'Epsilon: {ddqn_agent.epsilon:.3f}, Memory Size: {ddqn_agent.memory.mem_cntr % ddqn_agent.memory.mem_size}',flush=True)
 
-run()
+def run_best_model():
+    ddqn_agent.brain_eval.model = load_model("best_ddqn_model.keras")
+    ddqn_agent.epsilon = 0.0  # Fully greedy
+    ddqn_agent.brain_target.copy_weights(ddqn_agent.brain_eval)  # Sync target network
+    print("✔️ Loaded best_model.keras for demo run.")
+
+    game.reset()
+    done = False
+    score = 0
+    gtime = 0
+
+    observation_, reward, done = game.step(0)
+    observation = np.array(observation_)
+
+    # 🔍 Test what action values the loaded model outputs on first observation
+    test_action_values = ddqn_agent.brain_eval.predict(np.array([observation]))
+    print("Test action values (Q-values) for initial state:", test_action_values)
+
+    while not done:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return
+
+        action = ddqn_agent.choose_action(observation)
+        print(f"Action: {action}, Score: {score:.2f}")
+
+        observation_, reward, done = game.step(action)
+        observation_ = np.array(observation_)
+
+        score += reward
+        observation = observation_
+
+        gtime += 1
+        if gtime >= TOTAL_GAMETIME:
+            done = True
+
+        game.render(action)
+
+    print(f"▶️ Final Demo Score: {score:.2f}", flush=True)
+
+
+
+if __name__ == "__main__":
+    run()  # Train
+
+    # Run the best model
+    # run_best_model()

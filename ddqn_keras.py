@@ -1,6 +1,7 @@
 import numpy as np
 from tensorflow.keras.models import load_model #type: ignore
 from tensorflow.keras import layers, models, optimizers, losses # type: ignore
+from tensorflow.keras.optimizers import Adam # type: ignore
 
 class ReplayBuffer:
     def __init__(self, max_size, input_shape, n_actions, discrete=False):
@@ -15,6 +16,10 @@ class ReplayBuffer:
         self.terminal_memory = np.zeros(self.mem_size, dtype=np.float32)
 
     def store_transition(self, state, action, reward, state_, done):
+        # Check for NaN values in state, reward, and new_state before storing
+        if np.isnan(state).any() or np.isnan(reward) or np.isnan(state_).any():
+            print("❌ NaN detected in state or reward, transition not stored.")
+            return
         index = self.mem_cntr % self.mem_size
         self.state_memory[index] = state
         self.new_state_memory[index] = state_
@@ -60,6 +65,8 @@ class DDQNAgent:
         self.brain_eval = Brain(input_dims, n_actions, batch_size)
         self.brain_target = Brain(input_dims, n_actions, batch_size)
 
+        # self.optimizer = Adam(learning_rate=0.0001, clipvalue=1.0)
+
     def remember(self, state, action, reward, new_state, done):
         self.memory.store_transition(state, action, reward, new_state, done)
 
@@ -78,11 +85,24 @@ class DDQNAgent:
             return
 
         states, actions, rewards, states_, done = self.memory.sample_buffer(self.batch_size)
-        action_indices = np.dot(actions, np.arange(self.n_actions, dtype=np.int8))
+        action_indices = np.dot(np.array(actions, dtype=np.int32), np.arange(self.n_actions, dtype=np.int32))
+
+        states = np.array(states, dtype=np.float32)
+        states_ = np.array(states_, dtype=np.float32)
 
         q_next = self.brain_target.predict(states_)
         q_eval_next = self.brain_eval.predict(states_)
         q_pred = self.brain_eval.predict(states)
+
+        # Log Q-values to see if NaNs are present
+        # print(f"q_next: {q_next}")
+        # print(f"q_eval_next: {q_eval_next}")
+        # print(f"q_pred: {q_pred}")
+
+        # --- NaN check ---
+        if np.isnan(q_next).any() or np.isnan(q_eval_next).any() or np.isnan(q_pred).any():
+            print("❌ NaN detected in Q-value predictions")
+            return
 
         max_actions = np.argmax(q_eval_next, axis=1)
 
@@ -92,6 +112,11 @@ class DDQNAgent:
 
         q_target[batch_index, action_indices] = rewards + self.gamma * q_next[batch_index, max_actions] * done # Bellman equation
 
+        # --- NaN check in q_target ---
+        if np.isnan(q_target).any():
+            print("❌ NaN detected in Q-targets before training")
+            return
+        
         self.brain_eval.train(states, q_target)
 
         self.epsilon = max(self.epsilon * self.epsilon_dec, self.epsilon_min)
@@ -124,11 +149,12 @@ class Brain:
             layers.Dense(256, activation='relu'),
             layers.Dense(self.NbrActions, activation='linear')
         ])
-        model.compile(optimizer=optimizers.Adam(learning_rate=0.001),
-                      loss=losses.Huber())
+        model.compile(optimizer=optimizers.Adam(learning_rate=0.0001,clipvalue=1.0),loss=losses.Huber())
         return model
 
-    def train(self, x, y, epoch=1, verbose=0):
+    def train(self, x, y, epoch=1, verbose=0, optimizer=None):
+        if optimizer:
+            self.model.compile(optimizer=optimizer, loss=losses.Huber())
         self.model.fit(x, y, batch_size=self.batch_size, epochs=epoch, verbose=verbose)
 
     def predict(self, s):
